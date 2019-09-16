@@ -1,0 +1,99 @@
+--The main function.
+main:   li $a0, -68				-- initialize the input values
+		li $a1, -14
+		li $t4, 40
+		jal div				-- jump to the function
+ra1:	move $a0, $v0			-- a0 = v0
+		--move $a1, $v1
+		halt					-- end
+
+--The divide algorithm, it returns the quotient and reminder of the division.
+div:   	clr $v0 				-- q:= 0   v0=cat v1=rest
+	   	move $v1, $a0			-- r:= x
+	   	move $t0, $a0			-- x:= x0
+	   	move $t1, $a1			-- y:= y0
+while0:	bgt $t1, $v1, done0		-- while(r>=y) do
+	   	sll $t1, $t1, 1			-- 		y:=2*y
+ 	   	b while0				-- end
+done0:
+while1:	beq $t1, $a1, done1		-- while(y != y0) do
+	   	sll $v0, $v0, 1			--	q:= 2*q				
+	   	sra $t1, $t1, 1			-- 	y :=y div 2
+	   	bgt $t1, $v1, else1		-- 	if(r>=y) 
+	   	addi $v0, $v0, 1		--      	q:= q+1
+	   	sub $v1, $v1, $t1		--          r:= r-y
+	   	bne $t1, $a1, while1	-- 	
+else1:
+	   	b while1				-- end 
+done1:	jr $ra					-- return 
+
+--Greatest common divisor using the divide algorithm.
+gcd1:	
+while2:	jal div					-- do q:= x div y, r:= x mod y	
+ret:	move $a0, $a1			-- x:= y
+		move $a1, $v1			-- y:= x mod y 
+		bnez $a1, while2		-- while(y != 0)
+		move $v0, $a0
+		b ra1
+
+--Check if the number is prime. The program returns 1 if it is, 0 otherwise.
+prime:  addi $a1, $0, 2			  -- d:=2, t:=1
+		addi $t2, $0, 1			  -- 		
+while3:	jal div	
+		bgt $a1, $v0, done3		  -- while(d <= q)
+		bnez $v1, else2			  -- 	if(n mod d  == 0)
+		move $t2, $0			  --		t:=0
+else2:	addi $a1, $a1, 1		  --	d+=1
+		b while3
+done3:								  
+		--move $v0, $t2			  -- return t 
+		b ra2
+
+--Find the nth prime number.
+nthpr: 	addi $t3, $0, 1			  -- i:= 1
+		addi $a0, $0, 2			  -- j:= 2
+while4: bge $t3, $t4, end4		  -- while(i < n)
+		addi $t3, $t3, 1		  --	i+=1
+		clr $t2					  --	k:=0
+while5: bnez $t2, end5			  --	while(k = 0)
+		addi $a0, $a0, 1		  --		j++
+		jal prime				  --		k = prime (j)
+ra2:	b while5
+end5:   b while4
+end4:
+		move $v0, $a0			  -- return j 
+		b ra1
+
+--Original greatest common divisor algorithm.
+gcd:    beq $a0, $a1, done      -- while x /= y do
+        bleu $a0, $a1, else     -- if x > y then
+        sub $a0, $a0, $a1       --    x := x - y
+        b gcd                   -- else
+else:   sub $a1, $a1, $a0       --    y := y - x
+        b gcd                   -- end
+done:   move $v0, $a0           -- return x
+        jr $ra
+
+-- if the two inputs are much bigger than their difference, the numbers will
+-- decrease very little at every iteration.
+
+-- First few iterations of the inefficient algorithm
+-- Prelude> 2147483639-2147483605
+-- 34
+-- Prelude> 2147483605-24
+-- 2147483581
+-- Prelude> 2147483605-34
+-- 2147483571
+-- Prelude> 2147483571-34
+-- 2147483537
+
+
+-- More efficient algorithm
+-- Prelude> 2147483639 `mod` 2147483605
+-- 34
+-- Prelude> 
+-- Prelude> 2147483605 `mod` 34
+-- 17
+-- Prelude> 34 `mod` 17
+-- 0
+
